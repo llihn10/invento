@@ -20,7 +20,7 @@ export default function Sidebar({ currentPath = "/dashboard" }: { currentPath: s
             </div>
 
             <nav className="space-y-1">
-                <div className="text-sm font-semibold text-gray-400 uppercase">Inventory</div>
+                <div className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3">Inventory</div>
                 {navigation.map((item, key) => {
                     const IconComponent = item.icon
                     const isActive = currentPath === item.href
