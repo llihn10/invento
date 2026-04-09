@@ -1,13 +1,35 @@
 import Sidebar from "@/components/sidebar";
+import { deleteProduct } from "@/lib/actions/products";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { Prisma } from "@prisma/client";
 
-export default async function InventoryPage({ }) {
+export default async function InventoryPage({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
 
     const user = await getCurrentUser()
     const userId = user.id
 
-    const totalProducts = await prisma.product.findMany({ where: { userId } })
+    const params = await searchParams
+    const q = (params.q ?? "").trim()
+
+    const where: Prisma.ProductWhereInput = {
+        userId,
+        ...(q ? {
+            OR: [
+                { name: { contains: q, mode: "insensitive" } },
+                { sku: { contains: q, mode: "insensitive" } }
+            ]
+        } : {})
+    }
+
+    const [totalCount, items] = await Promise.all([
+        prisma.product.count({ where }),
+        prisma.product.findMany({ where })
+    ])
+
+    const pageSize = 10
+
+    const totalPages = Math.max(1, Math.ceil(totalCount / pageSize))
 
     return <div className="min-h-screen bg-gray-50">
         <Sidebar currentPath="/inventory" />
@@ -22,6 +44,17 @@ export default async function InventoryPage({ }) {
             </div>
 
             <div className="space-y-6">
+
+                {/* Search */}
+                <div className="bg-white rounded-lg border border-gray-200 p-6">
+                    <form className="flex gap-2" action="/inventory" method="GET">
+                        <input name="q"
+                            placeholder="Search products..."
+                            className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:border-transparent"
+                        />
+                        <button type="submit" className="px-6 py-2 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700">Search</button>
+                    </form>
+                </div>
 
                 {/* Products Table */}
                 <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
@@ -38,7 +71,7 @@ export default async function InventoryPage({ }) {
                         </thead>
 
                         <tbody className="bg-white divide-y divide-gray-200">
-                            {totalProducts.map((product: any, key: any) => (
+                            {items.map((product: any, key: any) => (
                                 <tr key={key} className="hover:bg-gray-50">
                                     <td className="px-6 py-4 text-sm text-gray-500">{product.name}</td>
                                     <td className="px-6 py-4 text-sm text-gray-500">{product.sku || "-"}</td>
@@ -47,7 +80,8 @@ export default async function InventoryPage({ }) {
                                     <td className="px-6 py-4 text-sm text-gray-500">{product.lowStockAt || "-"}</td>
                                     <td className="px-6 py-4 text-sm text-gray-500">
                                         <form action={async (formData: FormData) => {
-
+                                            "use server";
+                                            await deleteProduct(formData);
                                         }}>
                                             <input type="hidden" name="id" value={product.id} />
                                             <button className="text-red-500 hover:text-red-900">Delete</button>
@@ -58,6 +92,13 @@ export default async function InventoryPage({ }) {
                         </tbody>
                     </table>
                 </div>
+
+                {totalPages > 1 && (
+                    <div className="bg-white rounded-lg border border-gray-200 p-6">
+                        {/* <Pagination /> */}
+                        <p>Showing {items.length} of {totalCount} products</p>
+                    </div>
+                )}
             </div>
         </main>
     </div>
