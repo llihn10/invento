@@ -1,16 +1,19 @@
+import Pagination from "@/components/pagination";
 import Sidebar from "@/components/sidebar";
 import { deleteProduct } from "@/lib/actions/products";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
 
-export default async function InventoryPage({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
+export default async function InventoryPage({ searchParams }: { searchParams: Promise<{ q?: string, page?: string }> }) {
 
     const user = await getCurrentUser()
     const userId = user.id
 
     const params = await searchParams
     const q = (params.q ?? "").trim()
+    const pageSize = 10
+    const page = Math.max(1, Number(params.page ?? 1))
 
     const where: Prisma.ProductWhereInput = {
         userId,
@@ -24,10 +27,13 @@ export default async function InventoryPage({ searchParams }: { searchParams: Pr
 
     const [totalCount, items] = await Promise.all([
         prisma.product.count({ where }),
-        prisma.product.findMany({ where })
+        prisma.product.findMany({
+            where,
+            orderBy: { createdAt: "desc" },
+            skip: (page - 1) * pageSize,
+            take: pageSize
+        })
     ])
-
-    const pageSize = 10
 
     const totalPages = Math.max(1, Math.ceil(totalCount / pageSize))
 
@@ -95,8 +101,15 @@ export default async function InventoryPage({ searchParams }: { searchParams: Pr
 
                 {totalPages > 1 && (
                     <div className="bg-white rounded-lg border border-gray-200 p-6">
-                        {/* <Pagination /> */}
-                        <p>Showing {items.length} of {totalCount} products</p>
+                        <Pagination
+                            currentPage={page}
+                            totalPages={totalPages}
+                            baseUrl="/inventory"
+                            searchParams={{
+                                q,
+                                pageSize: String(pageSize)
+                            }}
+                        />
                     </div>
                 )}
             </div>
