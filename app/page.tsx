@@ -1,6 +1,9 @@
 import Link from "next/link";
+import { stackServerApp } from "@/stack/server";
 
-export default function Home() {
+export default async function Home() {
+  const user = await stackServerApp.getUser();
+
   return (
     <div className="min-h-screen bg-linear-to-br from-cyan-50 to-cyan-100 flex items-center justify-center">
       <div className="container mx-auto px-4 py-16">
@@ -12,18 +15,21 @@ export default function Home() {
             Streamline your inventory tracking - track products, monitor stock levels and gain valuable insights
           </p>
           <div className="flex gap-4 justify-center">
-            <Link
-              href="/sign-in"
-              className="bg-cyan-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-cyan-700 transition-colors"
-            >
-              Sign In
-            </Link>
-            <Link
-              href="#"
-              className="bg-white text-cyan-600 px-8 py-3 rounded-lg font-semibold border-2 border-cyan-600 hover:bg-cyan-50"
-            >
-              Learn More
-            </Link>
+            {user ? (
+              <Link
+                href="/dashboard"
+                className="bg-white text-cyan-600 px-8 py-3 rounded-lg font-semibold border-2 border-cyan-600 hover:bg-cyan-50"
+              >
+                Go to Dashboard
+              </Link>
+            ) : (
+              <Link
+                href="/sign-in"
+                className="bg-cyan-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-cyan-700 transition-colors"
+              >
+                Sign In
+              </Link>
+            )}
           </div>
         </div>
       </div>
